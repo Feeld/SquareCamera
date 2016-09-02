@@ -9,7 +9,6 @@ import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Size;
-import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,8 +16,6 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.OrientationEventListener;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,7 +47,6 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
     private ImageParameters mImageParameters;
 
-    private CameraOrientationListener mOrientationListener;
 
     public static Fragment newInstance() {
         return new CameraFragment();
@@ -61,7 +57,6 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        mOrientationListener = new CameraOrientationListener(context);
     }
 
     @Override
@@ -90,16 +85,10 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mOrientationListener.enable();
 
         mPreviewView = (SquareCameraPreview) view.findViewById(R.id.camera_preview_view);
         mPreviewView.getHolder().addCallback(CameraFragment.this);
 
-        final View topCoverView = view.findViewById(R.id.cover_top_view);
-        final View btnCoverView = view.findViewById(R.id.cover_bottom_view);
-
-        mImageParameters.mIsPortrait =
-                getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
 
         if (savedInstanceState == null) {
             ViewTreeObserver observer = mPreviewView.getViewTreeObserver();
@@ -112,9 +101,6 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
                     mImageParameters.mCoverWidth = mImageParameters.mCoverHeight
                             = mImageParameters.calculateCoverWidthHeight();
 
-//                    Log.d(TAG, "parameters: " + mImageParameters.getStringValues());
-//                    Log.d(TAG, "cover height " + topCoverView.getHeight());
-                    resizeTopAndBtmCover(topCoverView, btnCoverView);
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                         mPreviewView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
@@ -123,14 +109,6 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
                     }
                 }
             });
-        } else {
-            if (mImageParameters.isPortrait()) {
-                topCoverView.getLayoutParams().height = mImageParameters.mCoverHeight;
-                btnCoverView.getLayoutParams().height = mImageParameters.mCoverHeight;
-            } else {
-                topCoverView.getLayoutParams().width = mImageParameters.mCoverWidth;
-                btnCoverView.getLayoutParams().width = mImageParameters.mCoverWidth;
-            }
         }
 
         final ImageView swapCameraBtn = (ImageView) view.findViewById(R.id.change_camera);
@@ -238,7 +216,6 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
      * Start the camera preview
      */
     private void startCameraPreview() {
-        determineDisplayOrientation();
         setupCamera();
 
         try {
@@ -276,56 +253,6 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
     }
 
     /**
-     * Determine the current display orientation and rotate the camera preview
-     * accordingly
-     */
-    private void determineDisplayOrientation() {
-        CameraInfo cameraInfo = new CameraInfo();
-        Camera.getCameraInfo(mCameraID, cameraInfo);
-
-        // Clockwise rotation needed to align the window display to the natural position
-        int rotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
-        int degrees = 0;
-
-        switch (rotation) {
-            case Surface.ROTATION_0: {
-                degrees = 0;
-                break;
-            }
-            case Surface.ROTATION_90: {
-                degrees = 90;
-                break;
-            }
-            case Surface.ROTATION_180: {
-                degrees = 180;
-                break;
-            }
-            case Surface.ROTATION_270: {
-                degrees = 270;
-                break;
-            }
-        }
-
-        int displayOrientation;
-
-        // CameraInfo.Orientation is the angle relative to the natural position of the device
-        // in clockwise rotation (angle that is rotated clockwise from the natural position)
-        if (cameraInfo.facing == CameraInfo.CAMERA_FACING_FRONT) {
-            // Orientation is angle of rotation when facing the camera for
-            // the camera image to match the natural orientation of the device
-            displayOrientation = (cameraInfo.orientation + degrees) % 360;
-            displayOrientation = (360 - displayOrientation) % 360;
-        } else {
-            displayOrientation = (cameraInfo.orientation - degrees + 360) % 360;
-        }
-
-        mImageParameters.mDisplayOrientation = displayOrientation;
-        mImageParameters.mLayoutOrientation = degrees;
-
-        mCamera.setDisplayOrientation(mImageParameters.mDisplayOrientation);
-    }
-
-    /**
      * Setup the camera parameters
      */
     private void setupCamera() {
@@ -355,6 +282,7 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
         // Lock in the changes
         mCamera.setParameters(parameters);
+        mCamera.setDisplayOrientation(90);
     }
 
     private Size determineBestPreviewSize(Camera.Parameters parameters) {
@@ -408,8 +336,6 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
         if (mIsSafeToTakePhoto) {
             setSafeToTakePhoto(false);
 
-            mOrientationListener.rememberOrientation();
-
             // Shutter callback occurs after the image is captured. This can
             // be used to trigger a sound to let the user know that image is taken
             Camera.ShutterCallback shutterCallback = null;
@@ -437,7 +363,6 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
     @Override
     public void onStop() {
-        mOrientationListener.disable();
 
         // stop the preview
         if (mCamera != null) {
@@ -490,86 +415,15 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
      */
     @Override
     public void onPictureTaken(byte[] data, Camera camera) {
-        int rotation = getPhotoRotation();
-//        Log.d(TAG, "normal orientation: " + orientation);
-//        Log.d(TAG, "Rotate Picture by: " + rotation);
         getFragmentManager()
                 .beginTransaction()
                 .replace(
                         R.id.fragment_container,
-                        EditSavePhotoFragment.newInstance(data, rotation, mImageParameters.createCopy()),
+                        EditSavePhotoFragment.newInstance(data, 0, mImageParameters.createCopy()),
                         EditSavePhotoFragment.TAG)
                 .addToBackStack(null)
                 .commit();
 
         setSafeToTakePhoto(true);
-    }
-
-    private int getPhotoRotation() {
-        int rotation;
-        int orientation = mOrientationListener.getRememberedNormalOrientation();
-        CameraInfo info = new CameraInfo();
-        Camera.getCameraInfo(mCameraID, info);
-
-        if (info.facing == CameraInfo.CAMERA_FACING_FRONT) {
-            rotation = (info.orientation - orientation + 360) % 360;
-        } else {
-            rotation = (info.orientation + orientation) % 360;
-        }
-
-        return rotation;
-    }
-
-    /**
-     * When orientation changes, onOrientationChanged(int) of the listener will be called
-     */
-    private static class CameraOrientationListener extends OrientationEventListener {
-
-        private int mCurrentNormalizedOrientation;
-        private int mRememberedNormalOrientation;
-
-        public CameraOrientationListener(Context context) {
-            super(context, SensorManager.SENSOR_DELAY_NORMAL);
-        }
-
-        @Override
-        public void onOrientationChanged(int orientation) {
-            if (orientation != ORIENTATION_UNKNOWN) {
-                mCurrentNormalizedOrientation = normalize(orientation);
-            }
-        }
-
-        /**
-         * @param degrees Amount of clockwise rotation from the device's natural position
-         * @return Normalized degrees to just 0, 90, 180, 270
-         */
-        private int normalize(int degrees) {
-            if (degrees > 315 || degrees <= 45) {
-                return 0;
-            }
-
-            if (degrees > 45 && degrees <= 135) {
-                return 90;
-            }
-
-            if (degrees > 135 && degrees <= 225) {
-                return 180;
-            }
-
-            if (degrees > 225 && degrees <= 315) {
-                return 270;
-            }
-
-            throw new RuntimeException("The physics as we know them are no more. Watch out for anomalies.");
-        }
-
-        public void rememberOrientation() {
-            mRememberedNormalOrientation = mCurrentNormalizedOrientation;
-        }
-
-        public int getRememberedNormalOrientation() {
-            rememberOrientation();
-            return mRememberedNormalOrientation;
-        }
     }
 }
