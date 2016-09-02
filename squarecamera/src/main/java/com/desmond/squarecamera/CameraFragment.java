@@ -38,6 +38,7 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
     private static final int PREVIEW_SIZE_MAX_WIDTH = 640;
     private static final int PORTRAIT_ORIENTATION_DEGREES = 90;
 
+
     private int mCameraID;
     private String mFlashMode;
     private Camera mCamera;
@@ -422,7 +423,17 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
             fragmentClass = mCustomPreviewFragmentClass;
         }
 
-        return PreviewFragmentBuilder.newInstance(fragmentClass, data, PORTRAIT_ORIENTATION_DEGREES, mImageParameters.createCopy());
+
+        return PreviewFragmentBuilder.newInstance(fragmentClass, data, getRotation(), mImageParameters.createCopy());
+    }
+
+    private int getRotation() {
+        int rotation = PORTRAIT_ORIENTATION_DEGREES;
+        if(mCameraID == CameraInfo.CAMERA_FACING_FRONT) {
+            rotation *= -1;
+        }
+
+        return rotation;
     }
 
 
