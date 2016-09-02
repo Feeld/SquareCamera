@@ -18,6 +18,7 @@ import java.util.Arrays;
 public class RuntimePermissionActivity extends AppCompatActivity {
 
     public static final String REQUESTED_PERMISSION = "requested_permission";
+    public static final int REQUEST_STORAGE = 1;
     private static final int REQUEST_CODE = 1;
 
     public static void startActivity(@NonNull final Fragment fragment,

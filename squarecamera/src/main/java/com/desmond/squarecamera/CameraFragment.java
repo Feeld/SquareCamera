@@ -1,12 +1,12 @@
 package com.desmond.squarecamera;
 
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
-import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Size;
 import android.net.Uri;
@@ -49,6 +49,8 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
     private ImageParameters mImageParameters;
 
     private Class<? extends Fragment>  mCustomPreviewFragmentClass;
+    private byte[] mPhotoData = null;
+    private boolean isPreviewDisabled = false;
 
 
     public static Fragment newInstance() {
@@ -190,7 +192,7 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
      * Restart the camera preview
      */
     private void restartPreview() {
-        if (mCamera != null) {
+        if (mCamera != null && mIsSafeToTakePhoto) {
             stopCameraPreview();
             mCamera.release();
             mCamera = null;
@@ -388,11 +390,25 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
         switch (requestCode) {
             case 1:
-                Uri imageUri = data.getData();
+                if(data != null) {
+                    savePhotoWithoutConfirmation(data);
+                }
                 break;
 
             default:
                 super.onActivityResult(requestCode, resultCode, data);
+        }
+
+    }
+
+    private void savePhotoWithoutConfirmation(Intent data) {
+        final boolean isGranted = data.getBooleanExtra(RuntimePermissionActivity.REQUESTED_PERMISSION, false);
+        if (isGranted) {
+            Uri photoUri = ImageUtility.savePicture(getActivity(), mPhotoData, getRotation());
+            ((CameraActivity) getActivity()).returnPhotoUri(photoUri);
+            mPhotoData = null;
+            onStop();
+
         }
     }
 
@@ -403,6 +419,10 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
      */
     @Override
     public void onPictureTaken(byte[] data, Camera camera) {
+        if(isPreviewDisabled) {
+            mPhotoData = data;
+            requestForPermission();
+        }else {
         getFragmentManager()
                 .beginTransaction()
                 .replace(
@@ -412,8 +432,17 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
                 .addToBackStack(null)
                 .commit();
 
-        setSafeToTakePhoto(true);
+        }
     }
+
+
+
+    private void requestForPermission() {
+        RuntimePermissionActivity.startActivity(CameraFragment.this,
+                RuntimePermissionActivity.REQUEST_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+    }
+
 
     private Fragment getPreviewFragment(byte[] data) {
         Class<? extends Fragment> fragmentClass = EditSavePhotoFragment.class;
@@ -438,5 +467,9 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
     public void setCustomPreviewFragmentClass(Class<? extends Fragment> fragmentClass){
         mCustomPreviewFragmentClass = fragmentClass;
+    }
+
+    public void setPreviewDisabled(boolean disable) {
+        isPreviewDisabled = disable;
     }
 }

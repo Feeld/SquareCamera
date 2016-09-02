@@ -13,6 +13,7 @@ public class CameraActivity extends AppCompatActivity {
 
     public static final String TAG = CameraActivity.class.getSimpleName();
     public static final String CUSTOM_PREVIEW_CLASS = "CUSTOM_PREVIEW_CLASS";
+    public static final String DISABLE_PREVIEW = "DISABLE_PREVIEW";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,11 +28,12 @@ public class CameraActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             Fragment cameraFragment = CameraFragment.newInstance();
 
-            try {
-                Class<? extends Fragment> customPreviewClass = (Class<? extends Fragment>)
-                        getIntent().getExtras().getSerializable(CUSTOM_PREVIEW_CLASS);
-                ((CameraFragment)cameraFragment).setCustomPreviewFragmentClass(customPreviewClass);
-            }catch(Throwable e) {
+            Boolean disablePreview = getIntent().getBooleanExtra(DISABLE_PREVIEW, false);
+
+            if(!disablePreview) {
+                setCustomPreviewIfAvailable((CameraFragment) cameraFragment);
+            } else {
+                ((CameraFragment)cameraFragment).setPreviewDisabled(true);
             }
 
 
@@ -39,6 +41,16 @@ public class CameraActivity extends AppCompatActivity {
                     .beginTransaction()
                     .replace(R.id.fragment_container, cameraFragment , CameraFragment.TAG)
                     .commit();
+        }
+    }
+
+    private void setCustomPreviewIfAvailable(CameraFragment fragment) {
+
+        try {
+            Class<? extends Fragment> customPreviewClass = (Class<? extends Fragment>)
+                    getIntent().getExtras().getSerializable(CUSTOM_PREVIEW_CLASS);
+            fragment.setCustomPreviewFragmentClass(customPreviewClass);
+        }catch(Throwable e) {
         }
     }
 

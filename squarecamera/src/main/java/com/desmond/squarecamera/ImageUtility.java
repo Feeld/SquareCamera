@@ -56,6 +56,29 @@ public class ImageUtility {
         return bitmap;
     }
 
+    public static Uri savePicture(Context context, byte[] data, int rotation) {
+        Bitmap bitmap = decodeSampledBitmapFromByte(context, data);
+        bitmap = rotate(bitmap, rotation);
+        return savePicture(context, bitmap);
+    }
+
+    public static Bitmap rotate(Bitmap bitmap, int rotation){
+        if (rotation != 0) {
+            Bitmap oldBitmap = bitmap;
+
+            Matrix matrix = new Matrix();
+            matrix.postRotate(rotation);
+
+            bitmap = Bitmap.createBitmap(
+                    oldBitmap, 0, 0, oldBitmap.getWidth(), oldBitmap.getHeight(), matrix, false
+            );
+
+            oldBitmap.recycle();
+        }
+
+        return bitmap;
+    }
+
     public static Uri savePicture(Context context, Bitmap bitmap) {
 
         File mediaStorageDir = new File(
