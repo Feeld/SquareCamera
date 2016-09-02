@@ -11,6 +11,7 @@ import android.hardware.Camera.Size;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -46,6 +47,8 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
     private boolean mIsSafeToTakePhoto = false;
 
     private ImageParameters mImageParameters;
+
+    private Class<? extends Fragment>  mCustomPreviewFragmentClass;
 
 
     public static Fragment newInstance() {
@@ -419,11 +422,26 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
                 .beginTransaction()
                 .replace(
                         R.id.fragment_container,
-                        EditSavePhotoFragment.newInstance(data, PORTRAIT_ORIENTATION_DEGREES, mImageParameters.createCopy()),
+                        getPreviewFragment(data),
                         EditSavePhotoFragment.TAG)
                 .addToBackStack(null)
                 .commit();
 
         setSafeToTakePhoto(true);
+    }
+
+    private Fragment getPreviewFragment(byte[] data) {
+        Class<? extends Fragment> fragmentClass = EditSavePhotoFragment.class;
+
+        if(mCustomPreviewFragmentClass != null) {
+            fragmentClass = mCustomPreviewFragmentClass;
+        }
+
+        return PreviewFragmentBuilder.newInstance(fragmentClass, data, PORTRAIT_ORIENTATION_DEGREES, mImageParameters.createCopy());
+    }
+
+
+    public void setCustomPreviewFragmentClass(Class<? extends Fragment> fragmentClass){
+        mCustomPreviewFragmentClass = fragmentClass;
     }
 }

@@ -25,24 +25,9 @@ import android.widget.ImageView;
 public class EditSavePhotoFragment extends Fragment {
 
     public static final String TAG = EditSavePhotoFragment.class.getSimpleName();
-    public static final String BITMAP_KEY = "bitmap_byte_array";
-    public static final String ROTATION_KEY = "rotation";
-    public static final String IMAGE_INFO = "image_info";
 
     private static final int REQUEST_STORAGE = 1;
 
-    public static Fragment newInstance(byte[] bitmapByteArray, int rotation,
-                                       @NonNull ImageParameters parameters) {
-        Fragment fragment = new EditSavePhotoFragment();
-
-        Bundle args = new Bundle();
-        args.putByteArray(BITMAP_KEY, bitmapByteArray);
-        args.putInt(ROTATION_KEY, rotation);
-        args.putParcelable(IMAGE_INFO, parameters);
-
-        fragment.setArguments(args);
-        return fragment;
-    }
 
     public EditSavePhotoFragment() {}
 
@@ -56,9 +41,9 @@ public class EditSavePhotoFragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        int rotation = getArguments().getInt(ROTATION_KEY);
-        byte[] data = getArguments().getByteArray(BITMAP_KEY);
-        ImageParameters imageParameters = getArguments().getParcelable(IMAGE_INFO);
+        int rotation = getArguments().getInt(PreviewFragmentBuilder.ROTATION_KEY);
+        byte[] data = getArguments().getByteArray(PreviewFragmentBuilder.BITMAP_KEY);
+        ImageParameters imageParameters = getArguments().getParcelable(PreviewFragmentBuilder.IMAGE_INFO);
 
         if (imageParameters == null) {
             return;
