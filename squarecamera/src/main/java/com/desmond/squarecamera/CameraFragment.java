@@ -170,25 +170,10 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-//        Log.d(TAG, "onSaveInstanceState");
         outState.putInt(CAMERA_ID_KEY, mCameraID);
         outState.putString(CAMERA_FLASH_KEY, mFlashMode);
         outState.putParcelable(IMAGE_INFO, mImageParameters);
         super.onSaveInstanceState(outState);
-    }
-
-    private void resizeTopAndBtmCover( final View topCover, final View bottomCover) {
-        ResizeAnimation resizeTopAnimation
-                = new ResizeAnimation(topCover, mImageParameters);
-        resizeTopAnimation.setDuration(800);
-        resizeTopAnimation.setInterpolator(new AccelerateDecelerateInterpolator());
-        topCover.startAnimation(resizeTopAnimation);
-
-        ResizeAnimation resizeBtmAnimation
-                = new ResizeAnimation(bottomCover, mImageParameters);
-        resizeBtmAnimation.setDuration(800);
-        resizeBtmAnimation.setInterpolator(new AccelerateDecelerateInterpolator());
-        bottomCover.startAnimation(resizeBtmAnimation);
     }
 
     private void getCamera(int cameraID) {
