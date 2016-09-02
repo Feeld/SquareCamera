@@ -5,7 +5,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Size;
@@ -36,6 +35,7 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
     private static final int PICTURE_SIZE_MAX_WIDTH = 1280;
     private static final int PREVIEW_SIZE_MAX_WIDTH = 640;
+    private static final int PORTRAIT_ORIENTATION_DEGREES = 90;
 
     private int mCameraID;
     private String mFlashMode;
@@ -282,7 +282,7 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
         // Lock in the changes
         mCamera.setParameters(parameters);
-        mCamera.setDisplayOrientation(90);
+        mCamera.setDisplayOrientation(PORTRAIT_ORIENTATION_DEGREES);
     }
 
     private Size determineBestPreviewSize(Camera.Parameters parameters) {
@@ -419,7 +419,7 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
                 .beginTransaction()
                 .replace(
                         R.id.fragment_container,
-                        EditSavePhotoFragment.newInstance(data, 0, mImageParameters.createCopy()),
+                        EditSavePhotoFragment.newInstance(data, PORTRAIT_ORIENTATION_DEGREES, mImageParameters.createCopy()),
                         EditSavePhotoFragment.TAG)
                 .addToBackStack(null)
                 .commit();
