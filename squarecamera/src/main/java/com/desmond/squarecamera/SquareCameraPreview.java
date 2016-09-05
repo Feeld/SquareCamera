@@ -39,7 +39,6 @@ public class SquareCameraPreview extends SurfaceView {
     private boolean mIsZoomSupported;
     private int mActivePointerId = INVALID_POINTER_ID;
     private int mScaleFactor = 1;
-    private ScaleGestureDetector mScaleDetector;
 
     // For focus
     private boolean mIsFocus;
@@ -49,33 +48,23 @@ public class SquareCameraPreview extends SurfaceView {
 
     public SquareCameraPreview(Context context) {
         super(context);
-        init(context);
+        init();
     }
 
     public SquareCameraPreview(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init(context);
+        init();
     }
 
     public SquareCameraPreview(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        init(context);
+        init();
     }
 
-    private void init(Context context) {
-        mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
+    private void init() {
         mFocusArea = new Camera.Area(new Rect(), 1000);
         mFocusAreas = new ArrayList<>();
         mFocusAreas.add(mFocusArea);
-    }
-
-
-    public int getViewWidth() {
-        return getWidth();
-    }
-
-    public int getViewHeight() {
-        return getHeight();
     }
 
     public void setCamera(Camera camera) {
@@ -92,7 +81,7 @@ public class SquareCameraPreview extends SurfaceView {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        mScaleDetector.onTouchEvent(event);
+        //mScaleDetector.onTouchEvent(event);
 
         final int action = event.getAction();
         switch (action & MotionEvent.ACTION_MASK) {
@@ -177,15 +166,5 @@ public class SquareCameraPreview extends SurfaceView {
         mFocusArea.rect.set(left, top, right, bottom);
 
         return true;
-    }
-
-    private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
-
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            mScaleFactor = (int) detector.getScaleFactor();
-            handleZoom(mCamera.getParameters());
-            return true;
-        }
     }
 }
