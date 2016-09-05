@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
@@ -248,9 +249,14 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
     private void setupCamera() {
         // Never keep a global parameters
         Camera.Parameters parameters = mCamera.getParameters();
+        DisplayMetrics metrics = new DisplayMetrics();
+        getActivity().getWindowManager().getDefaultDisplay().getMetrics(metrics);
 
-        Size bestPreviewSize = determineBestPreviewSize(parameters);
-        Size bestPictureSize = determineBestPictureSize(parameters);
+        int height = metrics.heightPixels;
+        int width = metrics.widthPixels;
+
+        Size bestPreviewSize = getOptimalSize(parameters.getSupportedPreviewSizes(), width, height);
+        Size bestPictureSize = getOptimalSize(parameters.getSupportedPictureSizes(), width, height);
 
         parameters.setPreviewSize(bestPreviewSize.width, bestPreviewSize.height);
         parameters.setPictureSize(bestPictureSize.width, bestPictureSize.height);
@@ -275,34 +281,55 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
         mCamera.setDisplayOrientation(PORTRAIT_ORIENTATION_DEGREES);
     }
 
-    private Size determineBestPreviewSize(Camera.Parameters parameters) {
-        return determineBestSize(parameters.getSupportedPreviewSizes(), PREVIEW_SIZE_MAX_WIDTH);
-    }
+    /**
+     * Calculate the optimal size of camera preview
+     * seen on http://stackoverflow.com/a/16733405
+     * @author dumbfingers
+     *
+     * @param sizes
+     * @param w
+     * @param h
+     * @return
+     */
+    private Size getOptimalSize(List<Size> sizes, int w, int h) {
 
-    private Size determineBestPictureSize(Camera.Parameters parameters) {
-        return determineBestSize(parameters.getSupportedPictureSizes(), PICTURE_SIZE_MAX_WIDTH);
-    }
+        final double ASPECT_TOLERANCE = 0.2;
+        double targetRatio = (double) w / h;
+        if (sizes == null)
+            return null;
+        Size optimalSize = null;
+        double minDiff = Double.MAX_VALUE;
+        int targetHeight = h;
+        // Try to find an size match aspect ratio and size
+        for (Size size : sizes)
+        {
+            double ratio = (double) size.width / size.height;
+            if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE)
+                continue;
+            if (Math.abs(size.height - targetHeight) < minDiff)
+            {
+                optimalSize = size;
+                minDiff = Math.abs(size.height - targetHeight);
+            }
+        }
+        // Cannot find the one match the aspect ratio, ignore the requirement
 
-    private Size determineBestSize(List<Size> sizes, int widthThreshold) {
-        Size bestSize = null;
-        Size size;
-        int numOfSizes = sizes.size();
-        for (int i = 0; i < numOfSizes; i++) {
-            size = sizes.get(i);
-            boolean isDesireRatio = (size.width / 4) == (size.height / 3);
-            boolean isBetterSize = (bestSize == null) || size.width > bestSize.width;
-
-            if (isDesireRatio && isBetterSize) {
-                bestSize = size;
+        if (optimalSize == null)
+        {
+            minDiff = Double.MAX_VALUE;
+            for (Size size : sizes) {
+                if (Math.abs(size.height - targetHeight) < minDiff)
+                {
+                    optimalSize = size;
+                    minDiff = Math.abs(size.height - targetHeight);
+                }
             }
         }
 
-        if (bestSize == null) {
-            Log.d(TAG, "cannot find the best camera size");
-            return sizes.get(sizes.size() - 1);
-        }
 
-        return bestSize;
+
+//      Log.d("CameraActivity", "Using size: " + optimalSize.width + "w " + optimalSize.height + "h");
+        return optimalSize;
     }
 
     private int getFrontCameraID() {
