@@ -27,7 +27,7 @@ import android.widget.TextView;
 import java.io.IOException;
 import java.util.List;
 
-public class CameraFragment extends Fragment implements SurfaceHolder.Callback, Camera.PictureCallback {
+public class CameraFragment extends Fragment implements SurfaceHolder.Callback, Camera.PictureCallback, SquareCameraPreview.EventCallback {
 
     public static final String TAG = CameraFragment.class.getSimpleName();
     public static final String CAMERA_ID_KEY = "camera_id";
@@ -215,9 +215,11 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
             setSafeToTakePhoto(true);
             setCameraFocusReady(true);
+            mPreviewView.setEventCallback(this);
         } catch (IOException e) {
             Log.d(TAG, "Can't start camera preview due to IOException " + e);
             e.printStackTrace();
+            mPreviewView.setEventCallback(null);
         }
     }
 
@@ -380,7 +382,8 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
     @Override
     public void onStop() {
-
+        mPhotoData = null;
+        mPreviewView.setEventCallback(null);
         // stop the preview
         if (mCamera != null) {
             stopCameraPreview();
@@ -433,7 +436,6 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
         if (isGranted) {
             Uri photoUri = ImageUtility.savePicture(getActivity(), mPhotoData, getRotation());
             ((CameraActivity) getActivity()).returnPhotoUri(photoUri);
-            mPhotoData = null;
             onStop();
 
         }
@@ -498,5 +500,11 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
 
     public void setPreviewDisabled(boolean disable) {
         isPreviewDisabled = disable;
+    }
+
+    @Override
+    public void onError(Throwable t) {
+        ((CameraActivity) getActivity()).returnError(t);
+        onStop();
     }
 }

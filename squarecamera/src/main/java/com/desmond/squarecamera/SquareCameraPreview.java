@@ -10,6 +10,9 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.SurfaceView;
 
+import com.desmond.squarecamera.exception.AutofocusException;
+import com.desmond.squarecamera.exception.HandleFocusException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,10 +24,6 @@ public class SquareCameraPreview extends SurfaceView {
     public static final String TAG = SquareCameraPreview.class.getSimpleName();
     private static final int INVALID_POINTER_ID = -1;
 
-    private static final int ZOOM_OUT = 0;
-    private static final int ZOOM_IN = 1;
-    private static final int ZOOM_DELTA = 1;
-
     private static final int FOCUS_SQR_SIZE = 100;
     private static final int FOCUS_MAX_BOUND = 1000;
     private static final int FOCUS_MIN_BOUND = -FOCUS_MAX_BOUND;
@@ -35,16 +34,14 @@ public class SquareCameraPreview extends SurfaceView {
     private float mLastTouchY;
 
     // For scaling
-    private int mMaxZoom;
-    private boolean mIsZoomSupported;
     private int mActivePointerId = INVALID_POINTER_ID;
-    private int mScaleFactor = 1;
 
     // For focus
     private boolean mIsFocus;
     private boolean mIsFocusReady;
     private Camera.Area mFocusArea;
     private ArrayList<Camera.Area> mFocusAreas;
+    private EventCallback mEventCallback = null;
 
     public SquareCameraPreview(Context context) {
         super(context);
@@ -69,19 +66,10 @@ public class SquareCameraPreview extends SurfaceView {
 
     public void setCamera(Camera camera) {
         mCamera = camera;
-
-        if (camera != null) {
-            Camera.Parameters params = camera.getParameters();
-            mIsZoomSupported = params.isZoomSupported();
-            if (mIsZoomSupported) {
-                mMaxZoom = params.getMaxZoom();
-            }
-        }
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        //mScaleDetector.onTouchEvent(event);
 
         final int action = event.getAction();
         switch (action & MotionEvent.ACTION_MASK) {
@@ -96,13 +84,21 @@ public class SquareCameraPreview extends SurfaceView {
             }
             case MotionEvent.ACTION_UP: {
                 if (mIsFocus && mIsFocusReady) {
-                    handleFocus(mCamera.getParameters());
+                    try {
+                        handleFocus(mCamera.getParameters());
+                    }catch(Throwable t) {
+                        onError(new HandleFocusException(t));
+                    }
                 }
                 mActivePointerId = INVALID_POINTER_ID;
                 break;
             }
             case MotionEvent.ACTION_POINTER_DOWN: {
-                mCamera.cancelAutoFocus();
+                try {
+                    mCamera.cancelAutoFocus();
+                }catch (Throwable t){
+                    onError(new AutofocusException(t));
+                }
                 mIsFocus = false;
                 break;
             }
@@ -115,16 +111,12 @@ public class SquareCameraPreview extends SurfaceView {
         return true;
     }
 
-    private void handleZoom(Camera.Parameters params) {
-        int zoom = params.getZoom();
-        if (mScaleFactor == ZOOM_IN) {
-            if (zoom < mMaxZoom) zoom += ZOOM_DELTA;
-        } else if (mScaleFactor == ZOOM_OUT) {
-            if (zoom > 0) zoom -= ZOOM_DELTA;
+    private void onError(Throwable t) {
+        if(mEventCallback != null) {
+            mEventCallback.onError(t);
         }
-        params.setZoom(zoom);
-        mCamera.setParameters(params);
     }
+
 
     private void handleFocus(Camera.Parameters params) {
         float x = mLastTouchX;
@@ -166,5 +158,13 @@ public class SquareCameraPreview extends SurfaceView {
         mFocusArea.rect.set(left, top, right, bottom);
 
         return true;
+    }
+
+    public void setEventCallback(EventCallback eventCallback) {
+        mEventCallback = eventCallback;
+    }
+
+    interface EventCallback{
+        void onError(Throwable t);
     }
 }
