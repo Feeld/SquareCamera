@@ -279,8 +279,12 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
         }
 
         // Lock in the changes
-        mCamera.setParameters(parameters);
-        mCamera.setDisplayOrientation(PORTRAIT_ORIENTATION_DEGREES);
+        try {
+            mCamera.setParameters(parameters);
+            mCamera.setDisplayOrientation(PORTRAIT_ORIENTATION_DEGREES);
+        }catch(Throwable t){
+            onError(t);
+        }
     }
 
     /**
