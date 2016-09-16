@@ -16,6 +16,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Display;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.desmond.squarecamera.CameraActivity;
 import com.desmond.squarecamera.ImageUtility;
@@ -39,14 +40,19 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode != RESULT_OK) return;
 
-        if (requestCode == REQUEST_CAMERA) {
+        if(requestCode != REQUEST_CAMERA) return;
+
+        if (resultCode == RESULT_OK) {
             Uri photoUri = data.getData();
             // Get the bitmap in according to the width of the device
             Bitmap bitmap = ImageUtility.decodeSampledBitmapFromPath(photoUri.getPath(), mSize.x, mSize.x);
             ((ImageView) findViewById(R.id.image)).setImageBitmap(bitmap);
+        } else if (resultCode == CameraActivity.RESULT_ERROR) {
+            Throwable t = (Throwable) data.getSerializableExtra(CameraActivity.CAMERA_ERROR);
+            Toast.makeText(this, t.getMessage(), Toast.LENGTH_LONG).show();
         }
+
         super.onActivityResult(requestCode, resultCode, data);
     }
 

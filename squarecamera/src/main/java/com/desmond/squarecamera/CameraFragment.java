@@ -24,6 +24,8 @@ import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.desmond.squarecamera.exception.CameraNotAvailableException;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -143,7 +145,11 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
                 }
 
                 setupFlashMode();
-                setupCamera();
+                try {
+                    setupCamera();
+                } catch (NullPointerException e) {
+                    onError(new CameraNotAvailableException());
+                }
             }
         });
         setupFlashMode();
@@ -184,8 +190,7 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
             mCamera = Camera.open(cameraID);
             mPreviewView.setCamera(mCamera);
         } catch (Exception e) {
-            Log.d(TAG, "Can't open camera with id " + cameraID);
-            e.printStackTrace();
+            onError(new CameraNotAvailableException());
         }
     }
 
@@ -207,9 +212,8 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
      * Start the camera preview
      */
     private void startCameraPreview() {
-        setupCamera();
-
         try {
+            setupCamera();
             mCamera.setPreviewDisplay(mSurfaceHolder);
             mCamera.startPreview();
 
@@ -217,9 +221,9 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
             setCameraFocusReady(true);
             mPreviewView.setEventCallback(this);
         } catch (IOException e) {
-            Log.d(TAG, "Can't start camera preview due to IOException " + e);
-            e.printStackTrace();
             mPreviewView.setEventCallback(null);
+        } catch (NullPointerException e){
+            onError(new CameraNotAvailableException());
         }
     }
 
