@@ -190,7 +190,6 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
             mCamera = Camera.open(cameraID);
             mPreviewView.setCamera(mCamera);
         } catch (Exception e) {
-            onError(new CameraNotAvailableException());
         }
     }
 
