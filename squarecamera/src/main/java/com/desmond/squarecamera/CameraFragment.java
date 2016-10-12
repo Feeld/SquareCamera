@@ -237,7 +237,7 @@ public class CameraFragment extends Fragment implements SurfaceHolder.Callback, 
             mPreviewView.setEventCallback(this);
         } catch (IOException e) {
             mPreviewView.setEventCallback(null);
-        } catch (NullPointerException e){
+        } catch (RuntimeException e){
             onError(new CameraNotAvailableException());
         }
     }
